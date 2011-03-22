@@ -104,10 +104,18 @@ class AuthSourceLdap < AuthSource
     ldap_con = initialize_ldap_con(self.account, self.account_password)
     login_filter = Net::LDAP::Filter.eq( self.attr_login, login ) 
     object_filter = Net::LDAP::Filter.eq( "objectClass", "*" ) 
+       # TODO add optional filters to GUI
+       zimbra_filter = Net::LDAP::Filter.eq( "objectClass", "zimbraAccount" )
     attrs = {}
+
+       # setting the base_dn to an empty string => search starts at LDAP root dn
+       if (self.base_dn.nil?)
+               logger.debug 'Base DN is unset, starting search at root level' if logger && logger.debug?
+               self.base_dn = ''
+       end
     
-    ldap_con.search( :base => self.base_dn, 
-                     :filter => object_filter & login_filter, 
+    ldap_con.search( :base => self.base_dn,
+                                        :filter => object_filter & login_filter & zimbra_filter, 
                      :attributes=> search_attributes) do |entry|
 
       if onthefly_register?
